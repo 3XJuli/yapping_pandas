@@ -12,3 +12,7 @@ class BoilerplateCreate(QueryBaseModel):
 # would only contain patchable attributes
 class BoilerplateUpdate(QueryBaseModel):
     pass
+
+
+class SimulationParameters(QueryBaseModel):
+    pass
