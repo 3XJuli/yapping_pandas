@@ -1,0 +1,8 @@
+[run]
+command_line = -m pytest test/
+source = src/
+
+
+[report]
+skip_empty=True
+sort = -cover

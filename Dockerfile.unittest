@@ -1,0 +1,26 @@
+FROM ubuntu:22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV LANG C.UTF-8 
+
+RUN apt-get update && apt-get install build-essential curl openssh-client git software-properties-common jp -y
+
+RUN add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get install python3.11 python3-pip libpython3.11-dev python3.11-distutils -y
+RUN python3 -m pip install --upgrade setuptools
+RUN apt-get install postgresql postgis -y
+
+USER postgres
+RUN service postgresql start \
+    # change default user password
+    && psql -U postgres -c "ALTER USER postgres WITH PASSWORD 'postgres';"\
+    # Change psql config so that the default user doesn't have peer authentication but md5 instead
+    &&  sed /postgres/s/peer/md5/ $(psql -U postgres -t -P format=unaligned -c "SHOW hba_file;") -i
+USER root
+
+RUN curl -sSL https://install.python-poetry.org | python3.11 -
+ENV PATH="/root/.local/bin:$PATH"
+
+RUN mkdir -p $HOME/.cache/pypoetry/virtualenvs/
+
+ENTRYPOINT service postgresql start && bash
