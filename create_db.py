@@ -8,7 +8,7 @@ from sqlalchemy_utils import database_exists, create_database
 
 def main():
     alembic_cfg = alembic.config.Config(ALEMBIC_CONFIG_PATH)
-    engine = sqlalchemy.create_engine(APP_SETTINGS.backend_url, echo=True)
+    engine = sqlalchemy.create_engine(APP_SETTINGS.postgres_url, echo=True)
     if database_exists(engine.url):
         raise ValueError("Database already exists")
 

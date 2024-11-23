@@ -30,10 +30,10 @@ class SingletonService(object):
 
 class PostgresService(Generic[T]):
     def __init__(
-        self,
-        url: str,
-        model: Type[T],
-        pool_size=PostgresServiceConfig.pool_size,
+            self,
+            url: str,
+            model: Type[T],
+            pool_size=PostgresServiceConfig.pool_size,
     ) -> None:
         self.engine = create_engine(
             url, echo=True, pool_size=pool_size, max_overflow=pool_size * 3
@@ -59,11 +59,17 @@ class PostgresService(Generic[T]):
 
         return obj
 
+    def get_multiple(self, offset: int = 0, limit: int = -1, nested=False) -> List[T]:
+        with self.session.begin(nested=nested):
+            if limit == -1:
+                return self.session.query(self.model).offset(offset).all()
+
+            self.session.query(self.model).offset(offset).limit(limit).all()
+
     def add(self, obj: T, nested=False) -> T:
         try:
             with self.session.begin(nested=nested):
                 self.session.add(obj)
-
 
             with self.session.begin(nested=nested):
                 self.session.refresh(obj)

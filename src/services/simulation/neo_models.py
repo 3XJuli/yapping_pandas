@@ -1,3 +1,5 @@
+from typing import Optional, List
+
 from neomodel import (
     StructuredNode,
     StringProperty,
@@ -8,6 +10,7 @@ from neomodel import (
     ArrayProperty,
     RelationshipTo,
 )
+from pydantic import BaseModel
 
 
 class SoftwareArtifact(StructuredNode):
@@ -37,7 +40,27 @@ class System(StructuredNode):
     type = StringProperty()
     critical = IntegerProperty()
     key = StringProperty()
-    id = IntegerProperty()
+    identifier = IntegerProperty()
 
     related_software = RelationshipTo(SoftwareInstallation, "related_software")
     in_country = RelationshipTo(Country, "in_country")
+
+
+class Incident(StructuredNode):
+    friendly_name = StringProperty()
+    security_incident = StringProperty()
+    summary = StringProperty()
+    confidence = StringProperty()
+    impact = StringProperty()
+    source_id = StringProperty()
+    actor = StringProperty()
+    timeline = StringProperty()
+    action = StringProperty()
+    discovery_mechanism = StringProperty()
+    notes = StringProperty()
+    status = StringProperty()
+    key = StringProperty()
+    action_cves = [StringProperty()]
+
+    related_system = RelationshipTo(System, "related_subject")
+    related_software_installation = RelationshipTo(SoftwareInstallation, "related_subject")

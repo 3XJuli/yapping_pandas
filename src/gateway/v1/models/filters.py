@@ -30,16 +30,20 @@ class DatetimeRange(BaseModel):
 
 class DateTimeFilter(BaseModel):
     created_at_range: DatetimeRange | None = None
-    updated_at_range: DatetimeRange | None = None
 
-    def get_datetime_filters(self, created_at_column, updated_at_column):
+    def get_datetime_filters(self, published_at_column):
         filters = []
         if self.created_at_range:
-            filters += self.created_at_range.get_filter(created_at_column)
-        if self.updated_at_range:
-            filters += self.updated_at_range.get_filter(updated_at_column)
+            filters += self.created_at_range.get_filter(published_at_column)
         return filters
 
+class ScoreFilter(FloatRange):
+    min: float = 0
+    max: float = 10
 
-class BoilerplateFilter(DateTimeFilter, BaseModel):
+    def get_score_filters(self, score):
+        return self.get_filter(score)
+
+
+class VulnerabilityFilter(DateTimeFilter, ScoreFilter, BaseModel):
     pass

@@ -4,9 +4,12 @@ from pydantic_settings import BaseSettings
 
 class AppSettings(BaseSettings):
     master_key: str = Field(default="test_master_key")
-    backend_url: str = Field(
-        default="postgresql://postgres@localhost:5432/boilerplate_db"
+    postgres_url: str = Field(
+        default="postgresql://postgres:postgres@localhost:5432/yapyap"
     )
+    neo4j_url: str = Field(default="neo4j+ssc://hackatum-one.graphdatabase.ninja:443")
+    neo4j_user: str = Field(default="attendee12")
+    neo4j_password: str = Field(default="EXPL$76699")
 
 
 APP_SETTINGS = AppSettings()
@@ -14,4 +17,10 @@ APP_SETTINGS = AppSettings()
 
 def set_db_url(db_url: str):
     global APP_SETTINGS
-    APP_SETTINGS.backend_url = db_url
+    APP_SETTINGS.postgres_url = db_url
+
+def set_neo4j(url, user, password):
+    global APP_SETTINGS
+    APP_SETTINGS.neo4j_url = url
+    APP_SETTINGS.neo4j_user = user
+    APP_SETTINGS.neo4j_password = password

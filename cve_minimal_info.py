@@ -1,39 +1,15 @@
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from typing import List, Optional
 
 import requests
 from neo4j import GraphDatabase
 from pydantic import BaseModel
-from sqlalchemy import String, Column, Float
-from sqlalchemy.orm import declarative_base
 
 from src.services.postgres_service import PostgresService
+from src.services.simulation.db_models import VulnerabilitySql
 
 MAX_WORKER = 10
-
-class Vulnerability(BaseModel):
-    cve: Optional[str] = None
-    title: Optional[str] = None
-    score: Optional[float] = None
-    severity: Optional[str] = None
-    description: str = ""
-    url: Optional[str] = None
-    solution: Optional[str] = None
-
-
-Base = declarative_base()
-
-
-class VulnerabilitySql(Base):
-    __tablename__ = "vulnerability"
-    cve = Column(String, primary_key=True, index=True)
-    title = Column(String)
-    score = Column(Float)
-    severity = Column(String)
-    description = Column(String)
-    url = Column(String)
-    solution = Column(String)
-
 
 class Capec(BaseModel):
     id: str
@@ -50,6 +26,7 @@ class VulnerableConfiguration(BaseModel):
 
 
 class JSONModel(BaseModel):
+    Published: datetime
     capec: Optional[List[Capec]] = None
 
 
@@ -103,6 +80,8 @@ postgres = PostgresService(
     pool_size=5
 )
 
+def useful_cve(v: VulnerabilitySql) -> bool:
+    return v.cve is not None and v.title is not None and v.score > 0.0 and v.description is not None and v.solution is not None and v.severity != "unknown"
 
 class Transformer:
     def __init__(self, uri, user, password):
@@ -119,8 +98,7 @@ class Transformer:
 
             with ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
                 all_vulnerabilities = list(executor.map(self.build_vulnerability, list(map(lambda r: r["v.cve"], result))))
-                all_vulnerabilities = list(filter(lambda x: x.cve is not None, all_vulnerabilities))
-
+                all_vulnerabilities = list(filter(useful_cve, all_vulnerabilities))
 
         postgres.add_all(all_vulnerabilities)
 
