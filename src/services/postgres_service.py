@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Generic, Type, TypeVar
+from typing import Any, Generic, Type, TypeVar, List
 from psycopg2.errors import UniqueViolation, GeneratedAlways
 from sqlalchemy import create_engine, update
 from sqlalchemy.orm import scoped_session, sessionmaker, Query
@@ -32,14 +32,12 @@ class PostgresService(Generic[T]):
     def __init__(
         self,
         url: str,
-        base: Any,
         model: Type[T],
         pool_size=PostgresServiceConfig.pool_size,
     ) -> None:
         self.engine = create_engine(
             url, echo=True, pool_size=pool_size, max_overflow=pool_size * 3
         )
-        self.base = base
         self.model = model
         self.session = self.create_session()
 
@@ -66,8 +64,25 @@ class PostgresService(Generic[T]):
             with self.session.begin(nested=nested):
                 self.session.add(obj)
 
+
             with self.session.begin(nested=nested):
                 self.session.refresh(obj)
+
+            return obj
+
+        except IntegrityError as e:
+            if isinstance(e.orig, UniqueViolation):
+                raise ObjectAlreadyExists()
+            raise e
+        except ProgrammingError as e:
+            if isinstance(e.orig, GeneratedAlways):
+                raise IdGeneratedAlways()
+            raise e
+
+    def add_all(self, obj: List[T], nested=False) -> T:
+        try:
+            with self.session.begin(nested=nested):
+                self.session.add_all(obj)
 
             return obj
 
