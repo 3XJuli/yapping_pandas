@@ -31,11 +31,9 @@ class Vulnerability(ORMModel):
 
 class AffectedSoftware(ORMModel):
     elementId: str
-    cve: str
-    software: List[str]
+    product: str
+    publisher: str
     version: str
-    update: Optional[str] = None
-    edition: Optional[str] = None
 
 class AffectedSystem(ORMModel):
     critical: bool

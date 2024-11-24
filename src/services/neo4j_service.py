@@ -17,8 +17,8 @@ class Neo4JService(SingletonService):
 
     def find_Node_By_Id(self, id):
         with self.driver.session() as session:
-            node = session.run(f'''MATCH (n) WHERE id(n)={id} RETURN n''')
-            return node.single()
+            node = session.run(f'''MATCH (n) WHERE elementId(n)="{id}" RETURN n''')
+            return node.single()[0]
 
     def fetch_connections_by_type(self, intial_nodes_by_type):
         with self.driver.session() as session:
@@ -30,7 +30,15 @@ class Neo4JService(SingletonService):
 
     def fetch_connections_by_id(self, id):
         with self.driver.session() as session:
-            results = session.run(f'MATCH (n)-[r]->(m) WHERE id(n)={id} RETURN n, type(r), m')
+            results = session.run(f'MATCH (n)-[r]->(m) WHERE elementId(n)="{id}" RETURN n, type(r), m')
+            connections = [{'node': record['n'], 'relationship_type': record['type(r)'], 'connected_node': record['m']}
+                           for
+                           record in results]
+            return connections
+
+    def fetch_connections_by_id_with_target(self, id, target):
+        with self.driver.session() as session:
+            results = session.run(f'MATCH (n)-[r]->(m:{target}) WHERE elementId(n)="{id}" RETURN n, type(r), m')
             connections = [{'node': record['n'], 'relationship_type': record['type(r)'], 'connected_node': record['m']}
                            for
                            record in results]
@@ -38,7 +46,7 @@ class Neo4JService(SingletonService):
 
     def fetch_connections_by_id_rev_and_source(self, id, source):
         with self.driver.session() as session:
-            results = session.run(f'MATCH (n)<-[r]-(m:{source}) WHERE id(n)={id} RETURN n, type(r), m, elementId(m)')
+            results = session.run(f'MATCH (n)<-[r]-(m:{source}) WHERE elementId(n)="{id}" RETURN n, type(r), m, elementId(m)')
             connections = [{'node': record['n'], 'relationship_type': record['type(r)'], 'connected_node': record['m'],
                             'connected_elementId': record['elementId(m)']}
                            for
@@ -71,17 +79,20 @@ class Neo4JService(SingletonService):
             except:
                 logger.error(f"Error with CVE: {cve_id}")
                 return []
-            vulnerable_SoftwareInstallation = []
+            vulnerable_software = []
             for cpe in cpes:
                 publisher, product, version = fetch_information_from_cpe(cpe['id'])
-                results = session.run(
-                    f'''MATCH (c:SoftwareInstallation) WHERE toLower(c.publisher)=toLower("{publisher}") AND toLower(c.product)= toLower("{product}") AND toLower(c.version)="{version}" RETURN elementId(c)''')
+                results = session.run(f'''
+                MATCH (c:SoftwareInstallation)
+                WHERE toLower(c.publisher)=toLower("{publisher}")
+                    AND toLower(c.product)= toLower("{product}")
+                    AND toLower(c.version)="{version}"
+                RETURN elementId(c)''')
                 records = [record['elementId(c)'] for record in results]
                 if len(records) != 0:
-                    vulnerable_SoftwareInstallation.append(records)
-                    logger.debug(f"CVE Found with ID:{cve_id}")
-                    logger.debug(f"CVE Found with publisher: {publisher},product: {product}, version: {version}")
-            return vulnerable_SoftwareInstallation
+                    vulnerable_software = vulnerable_software + records
+                    logger.debug(f"CVE Found with ID:{cve_id}, publisher: {publisher},product: {product}, version: {version}")
+            return vulnerable_software
 
     def get_system_provider(self, system_id) -> str:
         provider = self.fetch_connections_by_id_rev_and_source(system_id, "ServiceProvider")
@@ -90,9 +101,9 @@ class Neo4JService(SingletonService):
 
         return provider[0]['connected_node']['name']
 
-    # return country codes ISO-3166-2
-    def get_system_location(self, system_id) -> List[str]:
-        countries = self.fetch_connections_by_id_rev_and_source(system_id, "Country")
+    # return country codes ISO-3166-3
+    def get_system_countries(self, system_id) -> List[str]:
+        countries = self.fetch_connections_by_id_with_target(system_id, "Country")
         return [country['connected_node']['cc'] for country in countries]
 
 

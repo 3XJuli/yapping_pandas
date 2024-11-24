@@ -2,6 +2,7 @@ create table vulnerability
 (
     cve         varchar(255) not null
         primary key,
+    published_at timestamp    not null,
     url         varchar(255),
     title       varchar(255),
     score       double precision,
