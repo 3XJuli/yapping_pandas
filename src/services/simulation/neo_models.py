@@ -1,16 +1,10 @@
-from typing import Optional, List
-
 from neomodel import (
     StructuredNode,
     StringProperty,
     IntegerProperty,
-    FloatProperty,
-    BooleanProperty,
-    DateTimeProperty,
     ArrayProperty,
     RelationshipTo,
 )
-from pydantic import BaseModel
 
 
 class SoftwareArtifact(StructuredNode):

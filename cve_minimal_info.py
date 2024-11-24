@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from src.services.postgres_service import PostgresService
 from src.services.simulation.db_models import VulnerabilitySql
 
-MAX_WORKER = 10
+MAX_WORKER = 20
 
 class Capec(BaseModel):
     id: str
@@ -81,7 +81,7 @@ postgres = PostgresService(
 )
 
 def useful_cve(v: VulnerabilitySql) -> bool:
-    return v.cve is not None and v.title is not None and v.score > 0.0 and v.description is not None and v.solution is not None and v.severity != "unknown"
+    return v.cve is not None and v.score > 0.0
 
 class Transformer:
     def __init__(self, uri, user, password):
@@ -91,18 +91,20 @@ class Transformer:
         self.driver.close()
 
     def get_cve(self):
-        query = """match (v:Vulnerability) return  v.cve limit 3000"""
+        query = """MATCH (f:Finding)-[:related_weakness]->(v:Vulnerability) WITH DISTINCT v.cve AS cve, f.title as title, f.severity as severity return title, severity, cve limit 50000"""
 
         with self.driver.session() as session:
             result = session.run(query)
 
+            # Make Dict and only keep last
             with ThreadPoolExecutor(max_workers=MAX_WORKER) as executor:
-                all_vulnerabilities = list(executor.map(self.build_vulnerability, list(map(lambda r: r["v.cve"], result))))
-                all_vulnerabilities = list(filter(useful_cve, all_vulnerabilities))
+                all_vulnerabilities = list(executor.map(lambda r: self.build_vulnerability(r["cve"], r["severity"], r["title"]),  result))
+                dict_vulnerabilities = {v.cve: v for v in all_vulnerabilities}
+                all_vulnerabilities = list(filter(useful_cve, dict_vulnerabilities.values()))
 
         postgres.add_all(all_vulnerabilities)
 
-    def build_vulnerability(self, cve: str) -> VulnerabilitySql:
+    def build_vulnerability(self, cve: str, severity: str, title: str) -> VulnerabilitySql:
         try:
             solution = self.fetch_cve_details(cve)
             remaining = self.fetch_cve_two(cve)
@@ -111,10 +113,10 @@ class Transformer:
 
             return VulnerabilitySql(
                 cve=cve,
-                title=remaining["title"],
+                title=title,
                 solution=solution,
                 score=remaining["score"],
-                severity=remaining["severity"],
+                severity=severity,
                 description=remaining["description"],
                 url=url)
 
@@ -144,7 +146,6 @@ class Transformer:
             return
 
         report = CVERecord.model_validate_json(resp.text)
-        title = report.containers.cna.title
         severity = "unknown"
         score = 0.0
         description = ""
@@ -155,7 +156,6 @@ class Transformer:
         if report.containers and report.containers.cna and report.containers.cna.descriptions and report.containers.cna.descriptions[0]:
             description = report.containers.cna.descriptions[0].value
         return {
-            "title": title,
             "severity": severity,
             "score": score,
             "description": description

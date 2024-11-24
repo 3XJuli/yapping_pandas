@@ -4,6 +4,7 @@ from typing import List
 from requests import get
 from neo4j import GraphDatabase
 
+from src.gateway.v1.models.responses import Person
 from src.services.postgres_service import SingletonService
 from src.settings import APP_SETTINGS
 
@@ -105,6 +106,30 @@ class Neo4JService(SingletonService):
     def get_system_countries(self, system_id) -> List[str]:
         countries = self.fetch_connections_by_id_with_target(system_id, "Country")
         return [country['connected_node']['cc'] for country in countries]
+
+    def find_responsible_person(self, system_id) -> Person:
+        with self.driver.session() as session:
+            results = session.run(f'''
+            match (s:System)<-[:assigned_for]-(as:AssignedSystemRole)<-[:role_assigned]-(p:Person)
+            where elementId(s) = "{system_id}"
+                and as.label in ["Security Coordinator","Cybersecurity Officer", "System Administrator", "System Owner"]
+            return p limit 1''')
+
+            single = results.single()
+            if len(single) == 0:
+                return Person()
+
+            p = results.single()[0]
+            fn = p['firstname']
+            ln = p['lastname']
+            email = f'{fn}.{ln}@siemens.de'
+            return Person(firstname=fn, lastname=ln, email=email)
+
+
+    def count(self, entity) -> int:
+        with self.driver.session() as session:
+            result = session.run(f"MATCH (n:{entity}) RETURN count(n)")
+            return result.single()[0]
 
 
 def fetch_cve_details(cve_id):

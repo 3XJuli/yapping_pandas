@@ -19,6 +19,11 @@ class Country:
     alpha_2: str
     alpha_3: str
 
+class Person(ORMModel):
+    firstname: str = ""
+    lastname: str = ""
+    email: str = ""
+
 class Vulnerability(ORMModel):
     cve: str
     published_at: datetime
@@ -41,3 +46,11 @@ class AffectedSystem(ORMModel):
     software: List[AffectedSoftware]    #
     location: List[Country]
     network: str    # elementId to network node
+    admin: Person
+
+class CveReport(ORMModel):
+    cve: Vulnerability
+    affected_systems: List[AffectedSystem]
+    total_systems: int
+    total_affected_systems: int
+    total_critical_systems: int
