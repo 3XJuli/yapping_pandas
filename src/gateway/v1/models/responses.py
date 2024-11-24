@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, List
 
@@ -12,6 +13,11 @@ class TimestampMixin(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+@dataclass
+class Country:
+    name: str
+    alpha_2: str
+    alpha_3: str
 
 class Vulnerability(ORMModel):
     cve: str
@@ -35,5 +41,5 @@ class AffectedSystem(ORMModel):
     critical: bool
     provider: str
     software: List[AffectedSoftware]    #
-    location: str   # location name
+    location: List[Country]
     network: str    # elementId to network node

@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class Neo4JService(SingletonService):
     def __init__(self, driver: GraphDatabase | None = None) -> None:
         self.driver = driver or GraphDatabase.driver(APP_SETTINGS.neo4j_url,
-                                                     auth=(APP_SETTINGS.neo4j_user.user, APP_SETTINGS.neo4j_password))
+                                                     auth=(APP_SETTINGS.neo4j_user, APP_SETTINGS.neo4j_password))
 
     def find_Node_By_Id(self, id):
         with self.driver.session() as session:
@@ -66,10 +66,11 @@ class Neo4JService(SingletonService):
                 cve = fetch_cve_details(cve_id)
                 cpes = cve['vulnerable_configuration']
                 if len(cpes) == 0:
-                    print("No CPES found")
-                    return "No CPES found"
+                    logger.error("No CPES found")
+                    return []
             except:
-                return "Error with CVE"
+                logger.error(f"Error with CVE: {cve_id}")
+                return []
             vulnerable_SoftwareInstallation = []
             for cpe in cpes:
                 publisher, product, version = fetch_information_from_cpe(cpe['id'])
@@ -78,8 +79,8 @@ class Neo4JService(SingletonService):
                 records = [record['elementId(c)'] for record in results]
                 if len(records) != 0:
                     vulnerable_SoftwareInstallation.append(records)
-                    print(f"CVE Found with ID:{cve_id}")
-                    print(f"CVE Found with publisher: {publisher},product: {product}, version: {version}")
+                    logger.debug(f"CVE Found with ID:{cve_id}")
+                    logger.debug(f"CVE Found with publisher: {publisher},product: {product}, version: {version}")
             return vulnerable_SoftwareInstallation
 
     def get_system_provider(self, system_id) -> str:
