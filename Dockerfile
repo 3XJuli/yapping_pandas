@@ -28,4 +28,4 @@ RUN poetry install --no-root --without dev
 
 EXPOSE 80
 
-CMD ["poetry", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "80"]
+CMD ["poetry", "run", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]

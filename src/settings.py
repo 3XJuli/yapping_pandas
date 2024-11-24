@@ -1,12 +1,11 @@
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class AppSettings(BaseSettings):
-    master_key: str = Field(default="test_master_key")
+    model_config = SettingsConfigDict(from_attributes=True)
     postgres_url: str = Field(
-        default="postgresql://postgres:postgres@localhost:5432/yapyap"
-    )
+        default="postgresql://postgres:postgres@localhost:5432/yapyap",)
     neo4j_url: str = Field(default="neo4j+ssc://hackatum-one.graphdatabase.ninja:443")
     neo4j_user: str = Field(default="attendee12")
     neo4j_password: str = Field(default="EXPL$76699")

@@ -1,4 +1,19 @@
 services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: backend
+    environment:
+      POSTGRES_URL: postgresql://postgres:postgres@db:5432/yapyap
+      NEO4J_URL: neo4j+ssc://hackatum-one.graphdatabase.ninja:443
+      NEO4J_USER: attendee12
+      NEO4J_PASSWORD: EXPL$76699
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
   db:
     image: postgres:latest
     container_name: postgres_db
